@@ -1,0 +1,37 @@
+name: Build Undertow VST3
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: Windows
+          - os: macos-latest
+            name: macOS
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.name }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build VST3
+        run: cmake --build build --config Release --target Undertow_VST3 --parallel 4
+
+      - name: Ad-hoc sign (macOS)
+        if: runner.os == 'macOS'
+        run: codesign --force --deep -s - build/Undertow_artefacts/Release/VST3/Undertow.vst3
+
+      - name: Upload plugin
+        uses: actions/upload-artifact@v4
+        with:
+          name: Undertow-VST3-${{ matrix.name }}
+          path: build/Undertow_artefacts/Release/VST3/
